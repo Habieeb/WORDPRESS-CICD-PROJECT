@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   wordpress:
     image: wordpress:latest
@@ -13,6 +11,8 @@ services:
       WORDPRESS_DB_NAME: wordpress
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD: wordpress
+    networks:
+      - wordpress_network
 
   db:
     image: mysql:5.7
@@ -24,6 +24,8 @@ services:
       MYSQL_PASSWORD: wordpress
     volumes:
       - db_data:/var/lib/mysql
+    networks:
+      - wordpress_network
 
   nginx:
     image: nginx:latest
@@ -35,7 +37,12 @@ services:
       - wordpress_data:/var/www/html
     depends_on:
       - wordpress
+    networks:
+      - wordpress_network
 
 volumes:
   wordpress_data:
   db_data:
+
+networks:
+  wordpress_network:

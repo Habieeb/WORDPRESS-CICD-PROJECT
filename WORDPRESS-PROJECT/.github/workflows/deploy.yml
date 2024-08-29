@@ -6,16 +6,28 @@ on:
       - main  # Trigger the workflow on push to the main branch
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Deploy to server
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
-            docker pull wordpress:latest &&
-            docker pull mysql:5.7 &&
-            docker-compose -f /path/to/remote/wordpress.yml up -d"
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v3
+      with:
+        context: .  # Assuming you have a Dockerfile if you decide to add it later
+        push: true
+        tags: habeeb24/wordpress:latest  # Your Docker Hub repository
+
+    - name: Deploy to server
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
+          docker pull habeeb24/wordpress:latest &&
+          docker-compose -f /c/Users/Habeeb/WORDPRESS-TESTPROJECT/WORDPRESS-CICD-PROJECT/WORDPRESS-PROJECT/wordpress-config/wordpress.yml up -d"

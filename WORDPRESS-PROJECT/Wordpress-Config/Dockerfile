@@ -1,13 +1,16 @@
-# Use the official WordPress image as the base
+# Use the official WordPress image as a base
 FROM wordpress:latest
 
-# Copy custom configuration files if needed
+# Install necessary packages
+RUN apt-get update && apt-get install -y \
+    nginx
+
+# Copy the custom nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Add custom scripts or configurations
-COPY backup.sh /usr/local/bin/backup.sh
-
-# Set up environment variables, configurations, etc.
-
-# Expose ports if needed
+# Expose the port Nginx is listening on
 EXPOSE 80
+
+# Start WordPress and Nginx
+CMD ["sh", "-c", "service nginx start && docker-entrypoint.sh apache2-foreground"]
+]
