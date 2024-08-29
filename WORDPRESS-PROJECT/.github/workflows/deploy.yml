@@ -31,3 +31,5 @@ jobs:
         ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
           docker pull habeeb24/wordpress:latest &&
           docker-compose -f /c/Users/Habeeb/WORDPRESS-TESTPROJECT/WORDPRESS-CICD-PROJECT/WORDPRESS-PROJECT/wordpress-config/wordpress.yml up -d"
+      env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
