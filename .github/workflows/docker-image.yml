@@ -26,7 +26,7 @@ jobs:
         run: |
           echo "$SSH_PRIVATE_KEY" > id_rsa
           chmod 600 id_rsa
-          ssh -i id_rsa -o StrictHostKeyChecking=no ubuntu@$EC2_HOST << 'EOF'
+          ssh -i id_rsa -o StrictHostKeyChecking=no -vvv ubuntu@$EC2_HOST << 'EOF'
             # Pull the latest WordPress image from Docker Hub
             docker pull wordpress:latest
 
@@ -34,7 +34,7 @@ jobs:
             docker pull mysql:5.7
 
             # Navigate to the directory where your wordpress.yml file is located
-            cd /c/Users/Habeeb/WORDPRESS-TESTPROJECT/WORDPRESS-CICD-PROJECT/WORDPRESS-PROJECT/wordpress-config/wordpress
+            cd /path/to/your/docker-compose
 
             # Use docker-compose with the custom file name to pull the latest images and restart the containers
             docker-compose -f wordpress.yml pull
