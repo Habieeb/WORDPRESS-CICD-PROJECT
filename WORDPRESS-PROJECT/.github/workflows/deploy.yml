@@ -1,0 +1,21 @@
+name: CI/CD for WordPress
+
+on:
+  push:
+    branches:
+      - main  # Trigger the workflow on push to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
+            docker pull wordpress:latest &&
+            docker pull mysql:5.7 &&
+            docker-compose -f /path/to/remote/wordpress.yml up -d"
