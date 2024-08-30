@@ -26,66 +26,44 @@ jobs:
         run: |
           # Create the .ssh directory if it doesn't exist
           mkdir -p ~/.ssh
+          
           # Create the SSH key file
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+          
           # Add the host to known_hosts to prevent host key verification issues
           ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+          
           # SSH into the EC2 instance and execute commands
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -vvv ubuntu@$EC2_HOST << 'EOF'
             # Ensure Docker is installed and running
             sudo systemctl status docker || sudo systemctl start docker
 
-            # Ensure Docker Compose is installed
-            if ! command -v docker-compose &> /dev/null
-            then
-                echo "Docker Compose not found, installing..."
-                sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -d '"' -f 4)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-                sudo chmod +x /usr/local/bin/docker-compose
-            fi
-
-            # Define the content of the docker-compose.yml file
-            mkdir -p /home/ubuntu/wordpress-config
-            cat << 'DOCKER_COMPOSE' | sudo tee /home/ubuntu/wordpress-config/wordpress.yml
-version: '3.8'
-
-services:
-  wordpress:
-    image: wordpress:latest
-    ports:
-      - "80:80"
-    volumes:
-      - wordpress-data:/var/www/html
-    environment:
-      WORDPRESS_DB_HOST: db:3306
-      WORDPRESS_DB_USER: exampleuser
-      WORDPRESS_DB_PASSWORD: examplepass
-      WORDPRESS_DB_NAME: exampledb
-
-  db:
-    image: mysql:5.7
-    volumes:
-      - db-data:/var/lib/mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: examplepass
-      MYSQL_DATABASE: exampledb
-      MYSQL_USER: exampleuser
-      MYSQL_PASSWORD: examplepass
-
-volumes:
-  wordpress-data:
-  db-data:
-            DOCKER_COMPOSE
-
-            # Navigate to the directory where your docker-compose.yml file is located
-            cd /home/ubuntu/wordpress-config || exit
-
             # Pull the latest WordPress and MySQL images from Docker Hub
-            sudo docker-compose pull
+            sudo docker pull wordpress:latest
+            sudo docker pull mysql:5.7
 
-            # Restart the containers with the latest images
-            sudo docker-compose up -d
+            # Stop and remove any existing WordPress and MySQL containers
+            sudo docker stop wordpress-container mysql-container || true
+            sudo docker rm wordpress-container mysql-container || true
+
+            # Run the WordPress container
+            sudo docker run -d --name wordpress-container \
+              -p 80:80 \
+              -e WORDPRESS_DB_HOST=mysql-container:3306 \
+              -e WORDPRESS_DB_USER=exampleuser \
+              -e WORDPRESS_DB_PASSWORD=examplepass \
+              -e WORDPRESS_DB_NAME=exampledb \
+              wordpress:latest
+
+            # Run the MySQL container
+            sudo docker run -d --name mysql-container \
+              -e MYSQL_ROOT_PASSWORD=examplepass \
+              -e MYSQL_DATABASE=exampledb \
+              -e MYSQL_USER=exampleuser \
+              -e MYSQL_PASSWORD=examplepass \
+              mysql:5.7
 
             # Optional: Check the status of the containers
-            sudo docker-compose ps
+            sudo docker ps
           EOF
