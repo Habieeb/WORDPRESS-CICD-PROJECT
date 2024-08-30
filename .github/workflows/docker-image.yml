@@ -26,32 +26,38 @@ jobs:
         run: |
           # Create the .ssh directory if it doesn't exist
           mkdir -p ~/.ssh
-
           # Create the SSH key file
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-
           # Add the host to known_hosts to prevent host key verification issues
           ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
-
           # SSH into the EC2 instance and execute commands
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -vvv ubuntu@$EC2_HOST << 'EOF'
             # Ensure Docker is installed and running
             sudo systemctl status docker || sudo systemctl start docker
+            
+            # Ensure Docker Compose is installed
+            if ! command -v docker-compose &> /dev/null
+            then
+                echo "Docker Compose not found, installing..."
+                sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -d '"' -f 4)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+                sudo chmod +x /usr/local/bin/docker-compose
+            fi
 
-            # Pull the latest WordPress image from Docker Hub
-            sudo docker pull wordpress:latest
+            # Create the directory for docker-compose if it doesn't exist
+            mkdir -p /path/to/your/docker-compose
 
-            # Pull the latest MySQL image from Docker Hub
-            sudo docker pull mysql:5.7
-
-            # Navigate to the directory where your wordpress.yml file is located
+            # Navigate to the directory where your docker-compose.yml file is located
             cd /path/to/your/docker-compose || exit
-
+            
+            # Pull the latest WordPress and MySQL images from Docker Hub
+            sudo docker pull wordpress:latest
+            sudo docker pull mysql:5.7
+            
             # Use docker-compose with the custom file name to pull the latest images and restart the containers
             sudo docker-compose -f wordpress.yml pull
             sudo docker-compose -f wordpress.yml up -d
-
+            
             # Optional: Check the status of the containers
             sudo docker-compose -f wordpress.yml ps
           EOF
