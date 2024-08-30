@@ -1,4 +1,4 @@
-name: Pull and Push Docker Images
+name: Pull, Push, and Deploy with Docker Compose
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  pull-and-push:
+  pull-push-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -43,7 +43,7 @@ jobs:
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/mysql:5.7
 
-      - name: Deploy to EC2
+      - name: Deploy to EC2 with Docker Compose
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -59,35 +59,19 @@ jobs:
           ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
           
           # SSH into the EC2 instance and execute commands
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -vvv ubuntu@$EC2_HOST << 'EOF'
-            # Ensure Docker is installed and running
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@$EC2_HOST << 'EOF'
+            # Ensure Docker and Docker Compose are installed and running
             sudo systemctl status docker || sudo systemctl start docker
             
+            # Navigate to the directory where your docker-compose.yml is located
+            cd /path/to/your/docker-compose-directory
+            
             # Pull the latest images from Docker Hub
-            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
-            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/mysql:5.7
+            sudo docker-compose pull
             
-            # Stop and remove any existing WordPress and MySQL containers
-            sudo docker stop wordpress-container mysql-container || true
-            sudo docker rm wordpress-container mysql-container || true
-            
-            # Run the WordPress container
-            sudo docker run -d --name wordpress-container \
-              -p 9595:80 \
-              -e WORDPRESS_DB_HOST=mysql-container:3306 \
-              -e WORDPRESS_DB_USER=root \
-              -e WORDPRESS_DB_PASSWORD=password \
-              -e WORDPRESS_DB_NAME=wordpress-db \
-              ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
-            
-            # Run the MySQL container
-            sudo docker run -d --name mysql-container \
-              -e MYSQL_ROOT_PASSWORD=password \
-              -e MYSQL_DATABASE=wordpress-db \
-              -e MYSQL_USER=root \
-              -e MYSQL_PASSWORD=password \
-              ${{ secrets.DOCKER_USERNAME }}/mysql:5.7
+            # Restart the services with the latest images
+            sudo docker-compose up -d
             
             # Optional: Check the status of the containers
-            sudo docker ps
+            sudo docker-compose ps
           EOF
