@@ -45,6 +45,7 @@ jobs:
             fi
 
             # Define the content of the docker-compose.yml file
+            mkdir -p /home/ubuntu/wordpress-config
             cat << 'DOCKER_COMPOSE' | sudo tee /home/ubuntu/wordpress-config/wordpress.yml
 version: '3.8'
 
@@ -74,20 +75,17 @@ services:
 volumes:
   wordpress-data:
   db-data:
-DOCKER_COMPOSE
+            DOCKER_COMPOSE
 
             # Navigate to the directory where your docker-compose.yml file is located
-            mkdir -p /home/ubuntu/wordpress-config
             cd /home/ubuntu/wordpress-config || exit
 
             # Pull the latest WordPress and MySQL images from Docker Hub
-            sudo docker pull wordpress:latest
-            sudo docker pull mysql:5.7
+            sudo docker-compose pull
 
-            # Use docker-compose with the custom file name to pull the latest images and restart the containers
-            sudo docker-compose -f wordpress.yml pull
-            sudo docker-compose -f wordpress.yml up -d
+            # Restart the containers with the latest images
+            sudo docker-compose up -d
 
             # Optional: Check the status of the containers
-            sudo docker-compose -f wordpress.yml ps
+            sudo docker-compose ps
           EOF
