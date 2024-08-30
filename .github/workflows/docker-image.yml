@@ -24,9 +24,15 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
-          echo "$SSH_PRIVATE_KEY" > id_rsa
-          chmod 600 id_rsa
-          ssh -i id_rsa -o StrictHostKeyChecking=no -vvv ubuntu@$EC2_HOST << 'EOF'
+          # Create the SSH key file
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          # Add the host to known_hosts to prevent host key verification issues
+          ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+
+          # SSH into the EC2 instance and execute commands
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -vvv ubuntu@$EC2_HOST << 'EOF'
             # Pull the latest WordPress image from Docker Hub
             docker pull wordpress:latest
 
@@ -39,4 +45,7 @@ jobs:
             # Use docker-compose with the custom file name to pull the latest images and restart the containers
             docker-compose -f wordpress.yml pull
             docker-compose -f wordpress.yml up -d
+
+            # Optional: Check the status of the containers
+            docker-compose -f wordpress.yml ps
           EOF
