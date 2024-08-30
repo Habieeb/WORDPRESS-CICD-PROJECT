@@ -36,19 +36,22 @@ jobs:
 
           # SSH into the EC2 instance and execute commands
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -vvv ubuntu@$EC2_HOST << 'EOF'
+            # Ensure Docker is installed and running
+            sudo systemctl status docker || sudo systemctl start docker
+
             # Pull the latest WordPress image from Docker Hub
-            docker pull wordpress:latest
+            sudo docker pull wordpress:latest
 
             # Pull the latest MySQL image from Docker Hub
-            docker pull mysql:5.7
+            sudo docker pull mysql:5.7
 
             # Navigate to the directory where your wordpress.yml file is located
-            cd /path/to/your/docker-compose
+            cd /path/to/your/docker-compose || exit
 
             # Use docker-compose with the custom file name to pull the latest images and restart the containers
-            docker-compose -f wordpress.yml pull
-            docker-compose -f wordpress.yml up -d
+            sudo docker-compose -f wordpress.yml pull
+            sudo docker-compose -f wordpress.yml up -d
 
             # Optional: Check the status of the containers
-            docker-compose -f wordpress.yml ps
+            sudo docker-compose -f wordpress.yml ps
           EOF
