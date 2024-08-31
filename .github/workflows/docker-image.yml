@@ -46,14 +46,14 @@ jobs:
           mkdir -p ~/.ssh
           
           # Create the SSH key file
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
           
           # Add the host to known_hosts to prevent host key verification issues
           ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
           
           # SSH into the EC2 instance and execute commands
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -vvv ubuntu@$EC2_HOST << 'EOF'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -vvv ubuntu@$EC2_HOST << 'EOF'
             # Ensure Docker is installed and running
             sudo systemctl status docker || sudo systemctl start docker
             
@@ -74,12 +74,10 @@ jobs:
               -e WORDPRESS_DB_NAME=wordpress-db \
               ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
             
-            # Run the MySQL container
+            # Run the MySQL container with corrected configuration
             sudo docker run -d --name mysql-container \
               -e MYSQL_ROOT_PASSWORD=password \
               -e MYSQL_DATABASE=wordpress-db \
-              -e MYSQL_USER=root \
-              -e MYSQL_PASSWORD=password \
               ${{ secrets.DOCKER_USERNAME }}/mysql:5.7
             
             # Optional: Check the status of the containers
