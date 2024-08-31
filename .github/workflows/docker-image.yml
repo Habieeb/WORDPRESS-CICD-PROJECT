@@ -27,13 +27,15 @@ jobs:
         with:
           node-version: '16'
 
-      - name: Install dependencies
+      - name: Navigate to Build Assets Project
+        working-directory: ./BUILD-ASSETS-PROJECT
         run: |
+          echo "Current directory contents:"
           ls -al
+          echo "Installing dependencies..."
           npm install
-
-      - name: Build assets
-        run: npm run build
+          echo "Building assets..."
+          npm run build
 
       - name: Build Docker image
         run: docker build -t ${{ secrets.DOCKER_USERNAME }}/wordpress:latest .
