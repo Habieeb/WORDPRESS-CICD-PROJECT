@@ -1,17 +1,28 @@
-name: Build and Deploy Docker Image
+name: Deploy WordPress to EC2
 
 on:
   push:
     branches:
-      - main  # Change to your target branch if different
+      - main
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build assets
+        run: npm run build
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -19,24 +30,33 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker image
-        run: |
-          docker build -t habeeb24/build-assets-project-asset-builder .
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/wordpress:latest .
 
       - name: Push Docker image
-        run: |
-          docker push habeeb24/build-assets-project-asset-builder
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
 
       - name: Deploy to EC2
-        uses: easingthemes/ssh-deploy@v2
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > id_rsa
+          chmod 600 id_rsa
+          ssh -i id_rsa -o StrictHostKeyChecking=no ubuntu@$EC2_HOST << 'EOF'
+            # Pull the latest Docker image
+            docker pull ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
+
+            # Navigate to the directory where docker-compose.yml is located
             cd /home/ubuntu/docker
-            sudo docker-compose down
-            sudo docker-compose up --build -d
+
+            # Optionally, stop and remove existing containers (if any)
+            docker-compose down
+
+            # Pull the latest changes (images) and recreate containers
+            docker-compose pull
+            docker-compose up -d
+          EOF
