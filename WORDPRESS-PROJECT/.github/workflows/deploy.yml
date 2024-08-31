@@ -50,5 +50,5 @@ jobs:
             docker pull your-dockerhub-username/wordpress:latest
             cd /path/to/your/docker-compose
             docker-compose pull
-            docker-compose up -d
+            docker-compose up -d  #1
           EOF
