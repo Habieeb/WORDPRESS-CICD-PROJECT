@@ -1,4 +1,4 @@
-name: Deploy WordPress to EC2
+name: Build and Deploy Asset Builder
 
 on:
   push:
@@ -13,17 +13,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build assets
-        run: npm run build
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -33,11 +22,13 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/wordpress:latest .
+      - name: Build Docker image for Asset Builder
+        run: |
+          cd BUILD-ASSETS-PROJECT
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/build-assets-project-asset-builder:latest .
 
-      - name: Push Docker image
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
+      - name: Push Docker image for Asset Builder
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/build-assets-project-asset-builder:latest
 
       - name: Deploy to EC2
         env:
@@ -47,16 +38,8 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > id_rsa
           chmod 600 id_rsa
           ssh -i id_rsa -o StrictHostKeyChecking=no ubuntu@$EC2_HOST << 'EOF'
-            # Pull the latest Docker image
-            docker pull ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
-
-            # Navigate to the directory where docker-compose.yml is located
-            cd /home/ubuntu/docker
-
-            # Optionally, stop and remove existing containers (if any)
-            docker-compose down
-
-            # Pull the latest changes (images) and recreate containers
+            docker pull ${{ secrets.DOCKER_USERNAME }}/build-assets-project-asset-builder:latest
+            cd /path/to/your/docker-compose
             docker-compose pull
             docker-compose up -d
           EOF
