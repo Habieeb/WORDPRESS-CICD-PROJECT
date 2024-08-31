@@ -1,4 +1,4 @@
-name: Build and Deploy Docker Image
+name: Deploy WordPress to EC2
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker image
-        run: docker build -t habeeb24/build-assets-project-asset-builder:latest .
+        run: docker build -t habeeb24/build-assets-project-asset-builder:latest -f BUILD-ASSETS-PROJECT/Dockerfile BUILD-ASSETS-PROJECT/
 
       - name: Push Docker image
         run: docker push habeeb24/build-assets-project-asset-builder:latest
