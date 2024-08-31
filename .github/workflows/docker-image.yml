@@ -1,4 +1,4 @@
-name: Build and Deploy Assets
+name: Build and Deploy Docker Image
 
 on:
   push:
@@ -22,29 +22,11 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
-
-      - name: Install dependencies
-        run: |
-          cd BUILD-ASSETS-PROJECT
-          npm install
-
-      - name: Build assets
-        run: |
-          cd BUILD-ASSETS-PROJECT
-          npm run build
-
-      - name: Build Docker image for assets
-        run: |
-          cd BUILD-ASSETS-PROJECT
-          docker build -t your-dockerhub-username/build-assets-project-asset-builder:latest .
+      - name: Build Docker image
+        run: docker build -t habeeb24/build-assets-project-asset-builder:latest .
 
       - name: Push Docker image
-        run: |
-          docker push your-dockerhub-username/build-assets-project-asset-builder:latest
+        run: docker push habeeb24/build-assets-project-asset-builder:latest
 
       - name: Deploy to EC2
         env:
@@ -54,7 +36,7 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > id_rsa
           chmod 600 id_rsa
           ssh -i id_rsa -o StrictHostKeyChecking=no ubuntu@$EC2_HOST << 'EOF'
-            docker pull your-dockerhub-username/build-assets-project-asset-builder:latest
+            docker pull habeeb24/build-assets-project-asset-builder:latest
             cd /path/to/your/docker-compose
             docker-compose pull
             docker-compose up -d
