@@ -37,7 +37,7 @@ jobs:
           chmod 600 id_rsa
           ssh -i id_rsa -o StrictHostKeyChecking=no ubuntu@$EC2_HOST << 'EOF'
             docker pull habeeb24/build-assets-project-asset-builder:latest
-            cd /path/to/your/docker-compose
+            cd /home/ubuntu/docker
             docker-compose pull
             docker-compose up -d
           EOF
