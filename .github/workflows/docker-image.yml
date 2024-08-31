@@ -54,10 +54,19 @@ jobs:
           # Create the SSH key file
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          
+
           # Add the host to known_hosts to prevent host key verification issues
           ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+
+          # Debug: Display the SSH directory and file permissions
+          ls -la ~/.ssh
           
+          # Debug: Check the content of known_hosts
+          cat ~/.ssh/known_hosts
+          
+          # Debug: Check if the private key is valid
+          ssh-keygen -y -f ~/.ssh/id_rsa
+
           # SSH into the EC2 instance and execute commands
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@$EC2_HOST << 'EOF'
             # Ensure Docker and Docker Compose are installed and running
