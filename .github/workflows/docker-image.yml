@@ -38,7 +38,11 @@ jobs:
           npm run build
 
       - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/wordpress:latest .
+        working-directory: ./BUILD-ASSETS-PROJECT
+        run: |
+          echo "Current directory contents in Docker build context:"
+          ls -al
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/wordpress:latest .
 
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
