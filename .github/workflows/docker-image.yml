@@ -1,4 +1,4 @@
-name: Deploy WordPress to EC2
+name: Build and Deploy Assets
 
 on:
   push:
@@ -27,25 +27,24 @@ jobs:
         with:
           node-version: '16'
 
-      - name: Navigate to Build Assets Project
-        working-directory: ./BUILD-ASSETS-PROJECT
+      - name: Install dependencies
         run: |
-          echo "Current directory contents:"
-          ls -al
-          echo "Installing dependencies..."
+          cd BUILD-ASSETS-PROJECT
           npm install
-          echo "Building assets..."
+
+      - name: Build assets
+        run: |
+          cd BUILD-ASSETS-PROJECT
           npm run build
 
-      - name: Build Docker image
-        working-directory: ./BUILD-ASSETS-PROJECT
+      - name: Build Docker image for assets
         run: |
-          echo "Current directory contents in Docker build context:"
-          ls -al
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/wordpress:latest .
+          cd BUILD-ASSETS-PROJECT
+          docker build -t your-dockerhub-username/build-assets-project-asset-builder:latest .
 
       - name: Push Docker image
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
+        run: |
+          docker push your-dockerhub-username/build-assets-project-asset-builder:latest
 
       - name: Deploy to EC2
         env:
@@ -55,19 +54,8 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > id_rsa
           chmod 600 id_rsa
           ssh -i id_rsa -o StrictHostKeyChecking=no ubuntu@$EC2_HOST << 'EOF'
-            # Check Docker service status
-            sudo systemctl status docker
-
-            # Pull the latest Docker image
-            docker pull ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
-
-            # Navigate to the directory containing docker-compose.yml
-            cd /home/ubuntu/docker
-
-            # Stop and remove existing containers
-            docker-compose down
-
-            # Pull the latest images and recreate containers
+            docker pull your-dockerhub-username/build-assets-project-asset-builder:latest
+            cd /path/to/your/docker-compose
             docker-compose pull
             docker-compose up -d
           EOF
