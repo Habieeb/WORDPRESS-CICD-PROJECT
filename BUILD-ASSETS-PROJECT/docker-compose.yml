@@ -1,10 +1,26 @@
-version: '3.8'
-
 services:
+  wordpress:
+    image: wordpress:latest
+    ports:
+      - "80:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: exampleuser
+      WORDPRESS_DB_PASSWORD: examplepass
+      WORDPRESS_DB_NAME: exampledb
+  
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: examplepass
+      MYSQL_DATABASE: exampledb
+      MYSQL_USER: exampleuser
+      MYSQL_PASSWORD: examplepass
+
   asset-builder:
     build:
-      context: .  # Use the current directory as the build context
+      context: .
       dockerfile: Dockerfile
-    volumes:
-      - .:/app  # Mount the current directory to /app in the container
+    depends_on:
+      - wordpress
     command: npm run build
