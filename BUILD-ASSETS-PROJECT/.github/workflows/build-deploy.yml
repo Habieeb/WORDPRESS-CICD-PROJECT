@@ -1,4 +1,4 @@
-name: Build and Deploy Asset Builder
+name: Pull and Push Docker Images
 
 on:
   push:
@@ -6,40 +6,80 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  pull-and-push:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Docker image for Asset Builder
+      - name: Pull WordPress base image
         run: |
-          cd BUILD-ASSETS-PROJECT
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/build-assets-project-asset-builder:latest .
-
-      - name: Push Docker image for Asset Builder
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/build-assets-project-asset-builder:latest
-
+          docker pull wordpress:latest
+      - name: Tag WordPress image
+        run: |
+          docker tag wordpress:latest ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
+      - name: Push WordPress image to Docker Hub
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
+      - name: Pull MySQL image
+        run: |
+          docker pull mysql:5.7
+      - name: Tag MySQL image
+        run: |
+          docker tag mysql:5.7 ${{ secrets.DOCKER_USERNAME }}/mysql:5.7
+      - name: Push MySQL image to Docker Hub
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/mysql:5.7
       - name: Deploy to EC2
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
-          echo "$SSH_PRIVATE_KEY" > id_rsa
-          chmod 600 id_rsa
-          ssh -i id_rsa -o StrictHostKeyChecking=no ubuntu@$EC2_HOST << 'EOF'
-            docker pull ${{ secrets.DOCKER_USERNAME }}/build-assets-project-asset-builder:latest
-            cd /path/to/your/docker-compose
-            docker-compose pull
-            docker-compose up -d
+          # Create the .ssh directory if it doesn't exist
+          mkdir -p ~/.ssh
+          
+          # Create the SSH key file
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          
+          # Add the host to known_hosts to prevent host key verification issues
+          ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+          
+          # SSH into the EC2 instance and execute commands
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -vvv ubuntu@$EC2_HOST << 'EOF'
+            # Ensure Docker is installed and running
+            sudo systemctl status docker || sudo systemctl start docker
+            
+            # Pull the latest images from Docker Hub
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/mysql:5.7
+            
+            # Stop and remove any existing WordPress and MySQL containers
+            sudo docker stop wordpress-container mysql-container || true
+            sudo docker rm wordpress-container mysql-container || true
+            
+            # Run the WordPress container
+            sudo docker run -d --name wordpress-container \
+              -p 9595:80 \
+              -e WORDPRESS_DB_HOST=mysql-container:3306 \
+              -e WORDPRESS_DB_USER=root \
+              -e WORDPRESS_DB_PASSWORD=password \
+              -e WORDPRESS_DB_NAME=wordpress-db \
+              ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
+            
+            # Run the MySQL container with corrected configuration
+            sudo docker run -d --name mysql-container \
+              -e MYSQL_ROOT_PASSWORD=password \
+              -e MYSQL_DATABASE=wordpress-db \
+              ${{ secrets.DOCKER_USERNAME }}/mysql:5.7
+            
+            # Optional: Check the status of the containers
+            sudo docker ps
           EOF
