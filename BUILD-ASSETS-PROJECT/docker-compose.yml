@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  asset-builder:
+    build:
+      context: .  # Use the current directory as the build context
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app  # Mount the current directory to /app in the container
+    command: npm run build
