@@ -55,6 +55,9 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > id_rsa
           chmod 600 id_rsa
           ssh -i id_rsa -o StrictHostKeyChecking=no ubuntu@$EC2_HOST << 'EOF'
+            # Check Docker service status
+            sudo systemctl status docker
+
             # Pull the latest Docker image
             docker pull ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
 
