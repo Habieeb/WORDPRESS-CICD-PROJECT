@@ -19,68 +19,39 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Pull WordPress base image
+      - name: Pull and Push Docker Images
         run: |
           docker pull wordpress:latest
-
-      - name: Tag WordPress image
-        run: |
           docker tag wordpress:latest ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
-
-      - name: Push WordPress image to Docker Hub
-        run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
-
-      - name: Pull MySQL image
-        run: |
           docker pull mysql:5.7
-
-      - name: Tag MySQL image
-        run: |
           docker tag mysql:5.7 ${{ secrets.DOCKER_USERNAME }}/mysql:5.7
-
-      - name: Push MySQL image to Docker Hub
-        run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/mysql:5.7
+
+      - name: Test DNS Resolution
+        run: |
+          nslookup ${{ secrets.EC2_HOST }}
+          ping -c 4 ${{ secrets.EC2_HOST }}
 
       - name: Deploy to EC2 with Docker Compose
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
         run: |
-          # Create the .ssh directory if it doesn't exist
           mkdir -p ~/.ssh
-          
-          # Create the SSH key file
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-
-          # Add the host to known_hosts to prevent host key verification issues
           ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
-
-          # Debug: Display the SSH directory and file permissions
           ls -la ~/.ssh
-          
-          # Debug: Check the content of known_hosts
           cat ~/.ssh/known_hosts
-          
-          # Debug: Check if the private key is valid
           ssh-keygen -y -f ~/.ssh/id_rsa
 
-          # SSH into the EC2 instance and execute commands
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@$EC2_HOST << 'EOF'
-            # Ensure Docker and Docker Compose are installed and running
-            sudo systemctl status docker || sudo systemctl start docker
-
-            # Navigate to the directory where your docker-compose.yml is located
-            cd /path/to/your/docker-compose-directory
-
-            # Pull the latest images from Docker Hub
+          # Ensure Docker and Docker Compose are installed and running
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USER@$EC2_HOST << 'EOF'
+            sudo systemctl restart docker
+            cd /actual/path/to/your/docker-compose-directory
             sudo docker-compose pull
-
-            # Restart the services with the latest images
             sudo docker-compose up -d
-
-            # Optional: Check the status of the containers
             sudo docker-compose ps
           EOF
