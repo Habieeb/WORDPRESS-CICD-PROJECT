@@ -22,27 +22,21 @@ jobs:
       - name: Pull WordPress base image
         run: |
           docker pull wordpress:latest
-
       - name: Tag WordPress image
         run: |
           docker tag wordpress:latest ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
-
       - name: Push WordPress image to Docker Hub
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/wordpress:latest
-
       - name: Pull MySQL image
         run: |
           docker pull mysql:5.7
-
       - name: Tag MySQL image
         run: |
           docker tag mysql:5.7 ${{ secrets.DOCKER_USERNAME }}/mysql:5.7
-
       - name: Push MySQL image to Docker Hub
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/mysql:5.7
-
       - name: Deploy to EC2 with Docker Compose
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -59,7 +53,7 @@ jobs:
           ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
           
           # SSH into the EC2 instance and execute commands
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@$EC2_HOST << 'EOF'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@$EC2_HOST << 'EOF'
             # Ensure Docker and Docker Compose are installed and running
             sudo systemctl status docker || sudo systemctl start docker
             
