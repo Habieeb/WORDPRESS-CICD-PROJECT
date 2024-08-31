@@ -1,30 +1,31 @@
-name: CI/CD Pipeline
+name: Build and Deploy
+
 on:
   push:
     branches:
       - main
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Build Docker image
-        run: docker build -t ghcr.io/your-repo/asset-builder:latest .
+    - name: Build Docker image
+      run: |
+        docker build -t my-app-asset-builder ./path/to/asset-builder
+        docker tag my-app-asset-builder my-dockerhub-username/my-app-asset-builder:latest
+        echo ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
+        docker push my-dockerhub-username/my-app-asset-builder:latest
 
-      - name: Push Docker image
-        run: docker push ghcr.io/your-repo/asset-builder:latest
-
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            docker pull ghcr.io/your-repo/asset-builder:latest
-            docker-compose down
-            docker-compose up -d
-
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v0.1.2
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_PRIVATE_KEY }}
+        script: |
+          cd /home/ubuntu/docker
+          docker-compose pull
+          docker-compose up --build -d
