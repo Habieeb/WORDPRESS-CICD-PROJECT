@@ -1029,7 +1029,6 @@ docker build -t habeeb24/build-assets-project-asset-builder:latest -f BUILD-ASSE
 
 
 
-![image](https://github.com/user-attachments/assets/3ba05e98-46bc-4141-a5a4-589e98e1bc16)
 
 
 
