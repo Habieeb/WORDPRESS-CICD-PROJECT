@@ -1,0 +1,38 @@
+version: '3'
+services:
+  asset-builder:
+    image: habeeb24/build-assets-project-asset-builder:latest
+    # Ensure this image is available and correctly tagged in your Docker registry
+    volumes:
+      - ./build-assets:/assets  # Adjust according to where your build outputs are
+    command: npm run build  # or the appropriate command for your build process
+
+  wordpress:
+    image: habeeb24/wordpress:latest
+    ports:
+      - "9590:80"
+    environment:
+      WORDPRESS_DB_HOST: mysql:3306
+      WORDPRESS_DB_USER: root
+      WORDPRESS_DB_PASSWORD: password
+      WORDPRESS_DB_NAME: wordpress-db
+    depends_on:
+      - mysql
+      - asset-builder  # Ensure WordPress waits for asset build
+    volumes:
+      - ./build-assets:/var/www/html/wp-content/assets  # Mount the built assets
+
+  mysql:
+    image: habeeb24/mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: wordpress-db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+  build-assets:  # Define volume for asset builds
+
