@@ -2,18 +2,17 @@ version: '3.8'
 
 services:
   wordpress:
-    image: habeeb24/wordpress:latest  # Your Docker Hub image
+    image: habeeb24/wordpress:latest
     container_name: wordpress
     ports:
-      - "9595:80"  # Adjust the port mapping as needed
+      - "9590:80"
     volumes:
       - wordpress_data:/var/www/html
     environment:
-      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_HOST: mysql:3306
       WORDPRESS_DB_USER: root
       WORDPRESS_DB_PASSWORD: password
       WORDPRESS_DB_NAME: wordpress-db
-
 
   db:
     image: mysql:5.7
@@ -21,7 +20,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: wordpress-db
-      MYSQL_USER: root
+      MYSQL_USER: user
       MYSQL_PASSWORD: password
     volumes:
       - db_data:/var/lib/mysql
@@ -29,4 +28,3 @@ services:
 volumes:
   wordpress_data:
   db_data:
-
